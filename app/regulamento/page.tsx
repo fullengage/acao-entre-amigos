@@ -192,7 +192,7 @@ export default function RegulamentoPage() {
                   </tr>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '10px 8px' }}>
-                      Quantidade de Gols Prevista para o Gol
+                      Acerto da quantidade de gols do Brasil (ou acerto do gol correspondente)
                     </td>
                     <td style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 600 }}>30</td>
                   </tr>
@@ -327,20 +327,23 @@ export default function RegulamentoPage() {
               <p>
                 - <strong>Prêmio ao Vencedor</strong>: O participante que acumular mais pontos no
                 respectivo jogo receberá metade do valor total arrecadado daquele jogo. Em caso de
-                empate na pontuação máxima, o prêmio será dividido igualmente entre os vencedores.
+                empate na pontuação máxima, os valores serão divididos igualmente entre todos os
+                participantes empatados na primeira colocação.
               </p>
               <p>
                 - <strong>Acerto Mínimo / Destinação Alternativa</strong>: Caso nenhum participante
                 consiga pontuar no jogo (todos terminem com 0 pontos), o valor correspondente ao
                 prêmio do vencedor (50% da arrecadação) não será distribuído e será revertido
-                integralmente (100% do total arrecadado no jogo) para as obras e manutenção da{' '}
-                <strong>Comunidade Voz de Deus</strong>.
+                integralmente (100% do total arrecadado no jogo) para a <strong>Comunidade Voz de Deus</strong>,
+                sendo utilizado exclusivamente para manutenção das atividades recreativas, evangelização,
+                eventos e despesas operacionais da comunidade.
               </p>
               <p>
                 - <strong>Fundo Comunitário</strong>: Em situações regulares de premiação, os outros 50%
                 são integralmente revertidos para a <strong>Comunidade Voz de Deus</strong> (Novo
-                Horizonte-SP) para auxílio nos custos dos projetos recreativos e manutenção do espaço
-                físico da comunidade.
+                Horizonte-SP). Os valores destinados à Comunidade Voz de Deus serão utilizados
+                exclusivamente para manutenção das atividades recreativas, evangelização, eventos e
+                despesas operacionais da comunidade, demonstrando a sua finalidade puramente comunitária e sem fins lucrativos.
               </p>
             </div>
           </div>
@@ -371,22 +374,26 @@ export default function RegulamentoPage() {
               }}
             >
               <p>
-                • Este sistema é destinado exclusivamente a uma brincadeira recreativa e
-                colaborativa de caráter privado entre amigos, familiares e participantes da
-                comunidade.
+                • O presente bolão possui caráter exclusivamente recreativo, sem finalidade de
+                exploração econômica, sendo realizado de forma colaborativa e privada entre participantes
+                da Comunidade Voz de Deus e seus convidados.
               </p>
               <p>
                 • <strong>Não se trata de plataforma de apostas esportivas</strong>, cassino
                 online, exploração comercial de sorteios ou atividade de jogo de azar profissional.
               </p>
               <p>
-                • Todos os lançamentos de resultados oficiais e o cálculo das pontuações são de
-                responsabilidade da administração do bolão e serão feitos com base nos dados reais
-                ocorridos em campo na Copa do Mundo de 2026.
+                • Todos os lançamentos de resultados e o cálculo das pontuações são de
+                responsabilidade da administração do bolão. Serão considerados válidos os resultados
+                oficiais divulgados pela FIFA ao término da partida.
               </p>
               <p>
-                • A devolução ou cancelamento de palpites confirmados só será permitida caso
-                solicitada até 1 hora antes do início do jogo correspondente.
+                • O participante poderá solicitar o cancelamento do palpite até 1 hora antes do início
+                oficial da partida. Após esse prazo, não haverá reembolso.
+              </p>
+              <p>
+                • Ao registrar um palpite, o participante declara ter lido e concordado integralmente
+                com este regulamento.
               </p>
             </div>
           </div>
