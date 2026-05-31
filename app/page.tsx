@@ -80,7 +80,7 @@ export default async function HomePage() {
               >
                 <span className="text-gradient-brazil">Bolão da</span>
                 <br />
-                <span style={{ color: 'white' }}>Seleção 2026</span>
+                <span style={{ color: 'white' }}>COPA 2026</span>
               </h1>
 
               {/* Slogan */}
@@ -216,7 +216,7 @@ export default async function HomePage() {
               color: 'white',
             }}
           >
-            Como funciona o <span className="text-gradient-brazil">Bolão da Seleção</span>?
+            Como funciona o <span className="text-gradient-brazil">Bolão da Copa</span>?
           </h2>
 
           <div

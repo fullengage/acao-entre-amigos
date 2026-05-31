@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
           📊 Dashboard
         </h1>
         <p style={{ color: '#8899bb', fontSize: '0.9rem' }}>
-          Visão geral do Bolão da Seleção 2026
+          Visão geral do Bolão da COPA 2026
         </p>
       </div>
 

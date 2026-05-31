@@ -4,12 +4,12 @@ import { Navbar } from '@/components/Navbar'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Bolão da Seleção 2026 — Comunidade Voz de Deus',
+  title: 'Bolão da COPA 2026 — Comunidade Voz de Deus',
   description:
     'Brincadeira recreativa entre amigos e participantes da comunidade durante os jogos da Seleção Brasileira na Copa do Mundo 2026. Comunidade Voz de Deus — Novo Horizonte, SP.',
   keywords: ['bolão', 'seleção brasileira', 'copa do mundo 2026', 'comunidade voz de deus', 'novo horizonte'],
   openGraph: {
-    title: 'Bolão da Seleção 2026',
+    title: 'Bolão da COPA 2026',
     description: 'Quanto mais perto do lance histórico, maior a chance de ganhar!',
     locale: 'pt_BR',
     type: 'website',

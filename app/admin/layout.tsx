@@ -72,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             />
             <div>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'white', lineHeight: 1.1 }}>
-                Bolão Seleção
+                Bolão Copa
               </div>
               <div style={{ fontSize: '0.7rem', color: '#00C94F', fontWeight: 600, marginTop: 2 }}>
                 2026

@@ -34,7 +34,7 @@ export function Navbar() {
           />
           <div style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 12 }}>
             <div style={{ fontWeight: 800, color: 'white', fontSize: '0.95rem', lineHeight: 1 }}>
-              Bolão da Seleção
+              Bolão da Copa
             </div>
             <div style={{ fontSize: '0.7rem', color: '#00C94F', fontWeight: 600, marginTop: 2 }}>2026</div>
           </div>

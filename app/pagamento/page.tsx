@@ -60,7 +60,7 @@ function PagamentoContent() {
   }
 
   const whatsappMsg = encodeURIComponent(
-    `Olá! Sou ${name} e acabo de enviar meu palpite no Bolão da Seleção 2026. Segue o comprovante do PIX de R$ 10,00. ID do palpite: ${guessId}`
+    `Olá! Sou ${name} e acabo de enviar meu palpite no Bolão da COPA 2026. Segue o comprovante do PIX de R$ 10,00. ID do palpite: ${guessId}`
   )
 
   return (

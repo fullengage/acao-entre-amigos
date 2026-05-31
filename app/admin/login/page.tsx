@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
             Área Admin
           </h1>
           <p style={{ color: '#8899bb', fontSize: '0.9rem' }}>
-            Bolão da Seleção 2026
+            Bolão da COPA 2026
           </p>
         </div>
 
