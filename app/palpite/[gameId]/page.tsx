@@ -1,0 +1,509 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { Game, Player, GuessFormData } from '@/types'
+import { formatDate, formatTime, halfLabel, goalsLabel, isGuessesClosed } from '@/lib/utils'
+
+interface Props {
+  params: Promise<{ gameId: string }>
+}
+
+export default function PalpitePage({ params }: Props) {
+  const router = useRouter()
+  const [gameId, setGameId] = useState<string>('')
+  const [game, setGame] = useState<Game | null>(null)
+  const [players, setPlayers] = useState<Player[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [step, setStep] = useState<1 | 2>(1)
+  const [error, setError] = useState('')
+
+  const [form, setForm] = useState<GuessFormData>({
+    goals: 1,
+    player_name: '',
+    half: 'first',
+    minute: 1,
+    participant_name: '',
+    participant_whatsapp: '',
+    participant_email: '',
+  })
+
+  useEffect(() => {
+    params.then(({ gameId: id }) => {
+      setGameId(id)
+      loadGameData(id)
+    })
+  }, [params])
+
+  async function loadGameData(id: string) {
+    setLoading(true)
+    const [gameRes, playersRes] = await Promise.all([
+      supabase.from('games').select('*').eq('id', id).single(),
+      supabase.from('players').select('*').eq('game_id', id).order('name'),
+    ])
+    setGame(gameRes.data)
+    setPlayers(playersRes.data || [])
+    setLoading(false)
+  }
+
+  async function handleSubmit() {
+    setError('')
+    if (!game) return
+    if (isGuessesClosed(game.match_date, game.match_time, game.status)) {
+      setError('Os palpites para este jogo já encerraram (limite de 10 minutos antes da partida).')
+      return
+    }
+    if (!form.participant_name.trim()) { setError('Informe seu nome.'); return }
+    if (!form.participant_whatsapp.trim()) { setError('Informe seu WhatsApp.'); return }
+    if (!form.player_name) { setError('Escolha um jogador.'); return }
+
+    setSubmitting(true)
+    try {
+      // Upsert participant by whatsapp
+      const { data: participant, error: pErr } = await supabase
+        .from('participants')
+        .upsert(
+          {
+            name: form.participant_name.trim(),
+            whatsapp: form.participant_whatsapp.replace(/\D/g, ''),
+            email: form.participant_email?.trim() || null,
+          },
+          { onConflict: 'whatsapp', ignoreDuplicates: false }
+        )
+        .select()
+        .single()
+
+      if (pErr) throw pErr
+
+      const { data: guess, error: gErr } = await supabase
+        .from('guesses')
+        .insert({
+          game_id: gameId,
+          participant_id: participant.id,
+          goals: form.goals,
+          player_name: form.player_name,
+          half: form.half,
+          minute: form.minute,
+          status: 'pending',
+        })
+        .select()
+        .single()
+
+      if (gErr) throw gErr
+
+      await supabase.from('payments').insert({
+        guess_id: guess.id,
+        participant_id: participant.id,
+        amount: 10.0,
+        status: 'pending',
+      })
+
+      router.push(
+        `/pagamento?name=${encodeURIComponent(form.participant_name)}&guessId=${guess.id}&goals=${form.goals}&player=${encodeURIComponent(form.player_name)}&half=${form.half}&minute=${form.minute}`
+      )
+    } catch (e) {
+      setError('Erro ao enviar palpite. Tente novamente.')
+      console.error(e)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) return <LoadingScreen />
+
+  if (!game) {
+    return (
+      <main style={{ padding: '80px 16px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.5rem', color: '#f87171' }}>Jogo não encontrado.</h1>
+      </main>
+    )
+  }
+
+  if (isGuessesClosed(game.match_date, game.match_time, game.status)) {
+    return (
+      <main style={{ padding: '80px 16px', textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: 16 }}>⏰</div>
+        <h1 style={{ fontSize: '1.5rem', color: '#FFDF00' }}>Palpites Encerrados</h1>
+        <p style={{ color: '#8899bb', marginTop: 8 }}>
+          Os palpites para este jogo encerraram 10 minutos antes do início da partida.
+        </p>
+      </main>
+    )
+  }
+
+  return (
+    <main style={{ padding: '40px 16px 80px' }}>
+      <div className="container-app" style={{ maxWidth: 640 }}>
+        {/* Header */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, rgba(0,156,59,0.15), rgba(0,39,118,0.2))',
+            border: '1px solid rgba(0,156,59,0.3)',
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 32,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: '0.8rem', color: '#00C94F', fontWeight: 600, marginBottom: 8 }}>
+            {game.stage}
+          </div>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white', marginBottom: 4 }}>
+            🇧🇷 Brasil x {game.opponent}
+          </h1>
+          <div style={{ color: '#8899bb', fontSize: '0.9rem' }}>
+            {formatDate(game.match_date)} • {formatTime(game.match_time)}
+          </div>
+        </div>
+
+        {/* Step indicator */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
+          {[1, 2].map((s) => (
+            <div
+              key={s}
+              style={{
+                flex: 1,
+                height: 4,
+                borderRadius: 2,
+                background: step >= s ? 'var(--green-brazil)' : 'rgba(255,255,255,0.1)',
+                transition: 'background 0.3s',
+              }}
+            />
+          ))}
+        </div>
+
+        {step === 1 ? (
+          <PalpiteStep
+            form={form}
+            setForm={setForm}
+            players={players}
+            onNext={() => setStep(2)}
+          />
+        ) : (
+          <ParticipantStep
+            form={form}
+            setForm={setForm}
+            onBack={() => setStep(1)}
+            onSubmit={handleSubmit}
+            submitting={submitting}
+            error={error}
+          />
+        )}
+      </div>
+    </main>
+  )
+}
+
+function PalpiteStep({
+  form,
+  setForm,
+  players,
+  onNext,
+}: {
+  form: GuessFormData
+  setForm: React.Dispatch<React.SetStateAction<GuessFormData>>
+  players: Player[]
+  onNext: () => void
+}) {
+  const goalsOptions = [1, 2, 3, 4, 5]
+
+  // Agrupa por posição
+  const posOrder = ['Atacante', 'Meia', 'Zagueiro', ''] as const
+  type PosKey = typeof posOrder[number]
+  const posLabel: Record<PosKey, string> = {
+    'Atacante': '⚡ Atacantes',
+    'Meia': '🔵 Meias',
+    'Zagueiro': '🛡️ Defensores',
+    '': '➕ Outros',
+  }
+  const posColor: Record<PosKey, string> = {
+    'Atacante': '#f59e0b',
+    'Meia': '#60a5fa',
+    'Zagueiro': '#34d399',
+    '': '#8899bb',
+  }
+
+  const fallback: Player[] = [
+    { id:'f1', game_id:'', name:'Vinícius Júnior', position:'Atacante', created_at:'' },
+    { id:'f2', game_id:'', name:'Raphinha', position:'Atacante', created_at:'' },
+    { id:'f3', game_id:'', name:'Endrick', position:'Atacante', created_at:'' },
+    { id:'f4', game_id:'', name:'Neymar', position:'Atacante', created_at:'' },
+    { id:'f5', game_id:'', name:'Gabriel Martinelli', position:'Atacante', created_at:'' },
+    { id:'f6', game_id:'', name:'Bruno Guimarães', position:'Meia', created_at:'' },
+    { id:'f7', game_id:'', name:'Lucas Paquetá', position:'Meia', created_at:'' },
+    { id:'f8', game_id:'', name:'Outro jogador', position:'', created_at:'' },
+  ]
+
+  const list = players.length > 0 ? players : fallback
+
+  const grouped = posOrder.reduce<Record<string, Player[]>>((acc, pos) => {
+    const items = list.filter(p => (p.position ?? '') === pos)
+    if (items.length) acc[pos] = items
+    return acc
+  }, {})
+
+  return (
+    <div className="glass-card" style={{ padding: 32 }}>
+      <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 24, color: 'white' }}>
+        ⚽ Seu Palpite
+      </h2>
+
+      {/* Goals */}
+      <div style={{ marginBottom: 28 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, color: '#aabbdd' }}>
+          1. Quantos gols o Brasil fará?
+        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          {goalsOptions.map((g) => (
+            <label key={g} className="option-card">
+              <input
+                type="radio"
+                name="goals"
+                value={g}
+                checked={form.goals === g}
+                onChange={() => setForm((f) => ({ ...f, goals: g }))}
+              />
+              <div className="option-card-inner" style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                {g === 5 ? '5+' : g}
+              </div>
+            </label>
+          ))}
+        </div>
+        <div style={{ marginTop: 8, fontSize: '0.8rem', color: '#8899bb' }}>
+          Selecionado: <strong style={{ color: '#FFDF00' }}>{goalsLabel(form.goals)}</strong>
+        </div>
+      </div>
+
+      {/* Player — grouped by position */}
+      <div style={{ marginBottom: 28 }}>
+        <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: '#aabbdd' }}>
+          2. Quem fará o gol principal?
+        </label>
+        {Object.entries(grouped).map(([pos, items]) => (
+          <div key={pos} style={{ marginBottom: 14 }}>
+            <div style={{
+              fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.08em', marginBottom: 7, paddingBottom: 4,
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              color: posColor[pos as keyof typeof posColor] || '#8899bb',
+            }}>
+              {posLabel[pos as keyof typeof posLabel] || '➕ Outros'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+              {items.map((p) => (
+                <label key={p.id} className="option-card">
+                  <input
+                    type="radio"
+                    name="player"
+                    value={p.name}
+                    checked={form.player_name === p.name}
+                    onChange={() => setForm((f) => ({ ...f, player_name: p.name }))}
+                  />
+                  <div className="option-card-inner" style={{
+                    textAlign: 'left', fontSize: '0.85rem',
+                    padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                    <span>{p.name === 'Outro jogador' ? '➕' : '⚽'}</span>
+                    <span>{p.name}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        {form.player_name && (
+          <div style={{ marginTop: 6, fontSize: '0.8rem', color: '#8899bb' }}>
+            Selecionado: <strong style={{ color: '#00C94F' }}>{form.player_name}</strong>
+          </div>
+        )}
+      </div>
+
+      {/* Half */}
+      <div style={{ marginBottom: 28 }}>
+        <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: '#aabbdd' }}>
+          3. Em qual tempo acontecerá o gol?
+        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {(['first', 'second'] as const).map((h) => (
+            <label key={h} className="option-card">
+              <input
+                type="radio"
+                name="half"
+                value={h}
+                checked={form.half === h}
+                onChange={() => setForm((f) => ({ ...f, half: h }))}
+              />
+              <div className="option-card-inner">
+                {h === 'first' ? '1º Tempo' : '2º Tempo'}
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Minute */}
+      <div style={{ marginBottom: 32 }}>
+        <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: '#aabbdd' }}>
+          4. Em qual minuto? <span style={{ color: '#8899bb', fontWeight: 400 }}>(1 a 90)</span>
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={90}
+          value={form.minute}
+          onChange={(e) => setForm((f) => ({ ...f, minute: Math.min(90, Math.max(1, Number(e.target.value))) }))}
+          className="input-field"
+          placeholder="Ex: 38"
+        />
+      </div>
+
+      {/* Summary */}
+      <div
+        style={{
+          background: 'rgba(255,223,0,0.08)',
+          border: '1px solid rgba(255,223,0,0.2)',
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 24,
+          fontSize: '0.85rem',
+          color: '#aabbdd',
+        }}
+      >
+        <strong style={{ color: '#FFDF00' }}>Resumo do palpite:</strong>
+        <br />
+        {goalsLabel(form.goals)} • {form.player_name || '(nenhum jogador)'} •{' '}
+        {halfLabel(form.half)} • {form.minute}' minuto
+      </div>
+
+      <button
+        className="btn-primary"
+        style={{ width: '100%', justifyContent: 'center', fontSize: '1rem' }}
+        onClick={onNext}
+        disabled={!form.player_name}
+      >
+        Continuar →
+      </button>
+    </div>
+  )
+}
+
+function ParticipantStep({
+  form,
+  setForm,
+  onBack,
+  onSubmit,
+  submitting,
+  error,
+}: {
+  form: GuessFormData
+  setForm: React.Dispatch<React.SetStateAction<GuessFormData>>
+  onBack: () => void
+  onSubmit: () => void
+  submitting: boolean
+  error: string
+}) {
+  return (
+    <div className="glass-card" style={{ padding: 32 }}>
+      <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 8, color: 'white' }}>
+        👤 Seus Dados
+      </h2>
+      <p style={{ color: '#8899bb', fontSize: '0.85rem', marginBottom: 24 }}>
+        Para registrar seu palpite e entrar no ranking.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 28 }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#aabbdd', fontSize: '0.9rem' }}>
+            Nome completo *
+          </label>
+          <input
+            type="text"
+            value={form.participant_name}
+            onChange={(e) => setForm((f) => ({ ...f, participant_name: e.target.value }))}
+            className="input-field"
+            placeholder="Seu nome"
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#aabbdd', fontSize: '0.9rem' }}>
+            WhatsApp * <span style={{ color: '#8899bb', fontWeight: 400 }}>(para confirmar pagamento)</span>
+          </label>
+          <input
+            type="tel"
+            value={form.participant_whatsapp}
+            onChange={(e) => setForm((f) => ({ ...f, participant_whatsapp: e.target.value }))}
+            className="input-field"
+            placeholder="(11) 99999-9999"
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#aabbdd', fontSize: '0.9rem' }}>
+            E-mail <span style={{ color: '#8899bb', fontWeight: 400 }}>(opcional)</span>
+          </label>
+          <input
+            type="email"
+            value={form.participant_email}
+            onChange={(e) => setForm((f) => ({ ...f, participant_email: e.target.value }))}
+            className="input-field"
+            placeholder="seu@email.com"
+          />
+        </div>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            background: 'rgba(220,38,38,0.15)',
+            border: '1px solid rgba(220,38,38,0.3)',
+            borderRadius: 10,
+            padding: '12px 16px',
+            color: '#f87171',
+            fontSize: '0.85rem',
+            marginBottom: 20,
+          }}
+        >
+          ⚠️ {error}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button
+          onClick={onBack}
+          style={{
+            flex: 1,
+            padding: '12px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 12,
+            color: '#aabbdd',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          ← Voltar
+        </button>
+        <button
+          className="btn-primary btn-yellow"
+          style={{ flex: 2, justifyContent: 'center' }}
+          onClick={onSubmit}
+          disabled={submitting}
+        >
+          {submitting ? 'Enviando...' : '✅ Enviar Palpite'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function LoadingScreen() {
+  return (
+    <main style={{ padding: '120px 16px', textAlign: 'center' }}>
+      <div style={{ fontSize: '3rem', marginBottom: 16 }}>⚽</div>
+      <p style={{ color: '#8899bb' }}>Carregando...</p>
+    </main>
+  )
+}
