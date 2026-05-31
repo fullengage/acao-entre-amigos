@@ -8,7 +8,7 @@ export function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        background: 'rgba(10,15,26,0.85)',
+        background: 'rgba(0,0,0,0.85)',
         backdropFilter: 'blur(16px)',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}
@@ -22,26 +22,21 @@ export function Navbar() {
           padding: '12px 16px',
         }}
       >
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+          <img
+            src="/logo-comunidade.png"
+            alt="Comunidade Voz de Deus"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #009C3B, #FFDF00)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.2rem',
+              height: 38,
+              width: 'auto',
+              display: 'block',
             }}
-          >
-            ⚽
-          </div>
-          <div>
+          />
+          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 12 }}>
             <div style={{ fontWeight: 800, color: 'white', fontSize: '0.95rem', lineHeight: 1 }}>
               Bolão da Seleção
             </div>
-            <div style={{ fontSize: '0.7rem', color: '#00C94F', fontWeight: 600 }}>2026</div>
+            <div style={{ fontSize: '0.7rem', color: '#00C94F', fontWeight: 600, marginTop: 2 }}>2026</div>
           </div>
         </Link>
 

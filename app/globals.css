@@ -11,9 +11,9 @@
   --blue-mid: #003EA6;
   --white: #FFFFFF;
 
-  --bg-primary: #0a0f1a;
-  --bg-secondary: #0f1829;
-  --bg-card: rgba(15, 24, 41, 0.8);
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-card: rgba(18, 18, 18, 0.85);
   --bg-glass: rgba(255, 255, 255, 0.05);
   --border-glass: rgba(255, 255, 255, 0.1);
 
@@ -37,11 +37,6 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  background-image:
-    radial-gradient(ellipse at 20% 20%, rgba(0, 156, 59, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(0, 39, 118, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(255, 223, 0, 0.03) 0%, transparent 60%);
-  background-attachment: fixed;
 }
 
 /* Glass card */

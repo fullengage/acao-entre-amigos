@@ -45,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside
         style={{
           width: 240,
-          background: 'rgba(10,15,26,0.95)',
+          background: 'rgba(0,0,0,0.95)',
           borderRight: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           flexDirection: 'column',
@@ -57,14 +57,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }}
       >
         <div style={{ padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize: '0.75rem', color: '#8899bb', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: '0.75rem', color: '#8899bb', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             🔐 Admin
           </div>
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white' }}>
-            Bolão da Seleção
-          </div>
-          <div className="text-gradient-brazil" style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-            2026
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img
+              src="/logo-comunidade.png"
+              alt="Comunidade Voz de Deus"
+              style={{
+                height: 32,
+                width: 'auto',
+                display: 'block',
+              }}
+            />
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'white', lineHeight: 1.1 }}>
+                Bolão Seleção
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#00C94F', fontWeight: 600, marginTop: 2 }}>
+                2026
+              </div>
+            </div>
           </div>
         </div>
 
