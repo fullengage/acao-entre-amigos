@@ -264,7 +264,17 @@ export default async function HomePage() {
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '2rem', marginBottom: 8 }}>🕊️</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <img
+                src="/logo-comunidade.png"
+                alt="Comunidade Voz de Deus"
+                style={{
+                  height: 48,
+                  width: 'auto',
+                  display: 'block',
+                }}
+              />
+            </div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'white', marginBottom: 8 }}>
               Comunidade Voz de Deus — Novo Horizonte, SP
             </h3>
