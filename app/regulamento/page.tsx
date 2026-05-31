@@ -230,13 +230,33 @@ export default function RegulamentoPage() {
             </ul>
 
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'white', marginBottom: 12 }}>
-              🏆 Bônus Match Geral:
+              🏆 Pontuação de Placar (Placar Completo):
             </h3>
-            <p style={{ color: '#aabbdd', fontSize: '0.95rem', margin: 0, lineHeight: 1.6 }}>
-              Caso o participante acerte a <strong>quantidade total exata de gols</strong> do Brasil
-              na partida (ex: previu 4 gols e o Brasil fez exatamente 4 gols), ele recebe um bônus
-              adicional de <strong>+30 pontos</strong> na pontuação final do jogo.
+            <p style={{ color: '#aabbdd', fontSize: '0.95rem', margin: '0 0 12px', lineHeight: 1.6 }}>
+              O bolão opera no formato de <strong>Placar Completo</strong>, avaliando tanto o placar do Brasil quanto do Adversário:
             </p>
+            <ul
+              style={{
+                paddingLeft: 20,
+                margin: '0 0 20px',
+                color: '#aabbdd',
+                fontSize: '0.9rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                lineHeight: 1.5,
+              }}
+            >
+              <li>
+                <strong>+30 pontos</strong> por acertar a quantidade exata de gols do Brasil.
+              </li>
+              <li>
+                <strong>+20 pontos</strong> por acertar a quantidade exata de gols do Adversário.
+              </li>
+              <li>
+                <strong>+30 pontos</strong> de bônus extra por acertar o Placar Completo exato do jogo (acertar ambos os placares, ex: previu Brasil 3 x 1 Marrocos e o jogo terminou 3 x 1).
+              </li>
+            </ul>
           </div>
 
           {/* Card 3: Financeiro */}

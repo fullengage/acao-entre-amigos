@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
                     {g.participant?.name || '—'}
                   </div>
                   <div style={{ color: '#8899bb', fontSize: '0.78rem' }}>
-                    Brasil x {g.game?.opponent} • {g.goals} gol(s)
+                    Brasil {g.goals} x {g.opponent_goals ?? 0} {g.game?.opponent}
                     {g.goals_details && g.goals_details.length > 0 ? (
                       g.goals_details.map((gd, gdidx) => (
                         <div key={gdidx} style={{ marginTop: 2, paddingLeft: 8 }}>

@@ -40,6 +40,7 @@ export interface Guess {
   game_id: string
   participant_id: string
   goals: number
+  opponent_goals: number
   player_id?: string
   player_name: string
   half: Half
@@ -105,6 +106,7 @@ export interface RankingEntry {
 
 export interface GuessFormData {
   goals: number
+  opponent_goals: number
   player_name: string
   half: Half
   minute: number

@@ -20,6 +20,7 @@ function PagamentoContent() {
   const [pixCode, setPixCode] = useState('')
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
+  const [guess, setGuess] = useState<any | null>(null)
   const [guessDetails, setGuessDetails] = useState<any[]>([])
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP || '5511955501090'
@@ -42,12 +43,15 @@ function PagamentoContent() {
     if (!guessId) return
     supabase
       .from('guesses')
-      .select('*')
+      .select('*, game:games(*)')
       .eq('id', guessId)
       .single()
       .then(({ data }) => {
-        if (data && data.goals_details) {
-          setGuessDetails(data.goals_details)
+        if (data) {
+          setGuess(data)
+          if (data.goals_details) {
+            setGuessDetails(data.goals_details)
+          }
         }
       })
   }, [guessId])
@@ -104,8 +108,10 @@ function PagamentoContent() {
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#8899bb' }}>Gols do Brasil</div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>{goalsLabel(goals)}</div>
+              <div style={{ fontSize: '0.75rem', color: '#8899bb' }}>Placar Previsto</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>
+                🇧🇷 Brasil {guess ? guess.goals : goals} x {guess ? guess.opponent_goals : 0} {guess?.game?.opponent || 'Adversário'}
+              </div>
             </div>
 
             {guessDetails.length > 0 ? (

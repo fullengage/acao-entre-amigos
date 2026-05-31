@@ -26,8 +26,11 @@ export function calculateScore(guess: Guess, result: GameResult): ScoreBreakdown
     return breakdown
   }
 
-  const goalsMatch = guess.goals === result.brazil_goals
-  breakdown.goals_match = goalsMatch
+  const brazilGoalsMatch = guess.goals === result.brazil_goals
+  const opponentGoalsMatch = (guess.opponent_goals ?? 0) === result.opponent_goals
+  const fullScoreMatch = brazilGoalsMatch && opponentGoalsMatch
+
+  breakdown.goals_match = fullScoreMatch
 
   // Caso 1: Ambos possuem o detalhamento de múltiplos gols (JSONB)
   const guessDetails = guess.goals_details || []
@@ -37,17 +40,29 @@ export function calculateScore(guess: Guess, result: GameResult): ScoreBreakdown
                      (result.brazil_goals > 0 && resultDetails.length > 0)
 
   if (hasDetails) {
-    // Se o palpite de gols bateu
-    if (goalsMatch) {
-      if (guess.goals === 0) {
-        breakdown.exact_match = true
-        breakdown.base_points = 100
-        breakdown.description.push('🎯 Acertou o placar de 0 gols! +100 pontos')
-      } else {
-        // Se acertou a quantidade de gols, adicionamos o bônus de placar (+30)
-        breakdown.base_points += 30
-        breakdown.description.push('🔢 Acertou a quantidade total de gols! +30 pontos')
-      }
+    let totalBase = 0
+
+    // Pontuação pelo placar
+    if (brazilGoalsMatch) {
+      totalBase += 30
+      breakdown.description.push('🔢 Acertou a quantidade de gols do Brasil! +30 pontos')
+    }
+    if (opponentGoalsMatch) {
+      totalBase += 20
+      breakdown.description.push('🔢 Acertou a quantidade de gols do adversário! +20 pontos')
+    }
+    if (fullScoreMatch) {
+      totalBase += 30
+      breakdown.description.push('🔥 Bônus Placar Completo! +30 pontos')
+    }
+
+    if (fullScoreMatch && guess.goals === 0) {
+      breakdown.exact_match = true
+      breakdown.base_points = 100
+      breakdown.description = ['🎯 Acertou o placar exato de 0x0! +100 pontos']
+      breakdown.minute_bonus = 0
+      breakdown.total = 100
+      return breakdown
     }
 
     // Ordenar cronologicamente
@@ -56,7 +71,6 @@ export function calculateScore(guess: Guess, result: GameResult): ScoreBreakdown
 
     // Comparar gols correspondentes
     const compareCount = Math.min(sortedGuesses.length, sortedActual.length)
-    let totalBase = breakdown.base_points
     let totalMinuteBonus = 0
     let matchCount = 0
 
@@ -74,17 +88,17 @@ export function calculateScore(guess: Guess, result: GameResult): ScoreBreakdown
 
       if (pMatch && hMatch && mMatch) {
         goalBase = 100
-        goalDesc = `🎯 Gol ${i + 1}: Acertou tudo (${g.player_name}, ${g.minute}')! +100 pontos`
+        goalDesc = `🎯 Gol ${i + 1} do BR: Acertou tudo (${g.player_name}, ${g.minute}')! +100 pontos`
         matchCount++
       } else if (pMatch && hMatch) {
         goalBase = 80
-        goalDesc = `⚽ Gol ${i + 1}: Acertou jogador e tempo (${g.player_name})! +80 pontos`
+        goalDesc = `⚽ Gol ${i + 1} do BR: Acertou jogador e tempo (${g.player_name})! +80 pontos`
       } else if (pMatch) {
         goalBase = 60
-        goalDesc = `👤 Gol ${i + 1}: Acertou o jogador (${g.player_name})! +60 pontos`
+        goalDesc = `👤 Gol ${i + 1} do BR: Acertou o jogador (${g.player_name})! +60 pontos`
       } else if (hMatch) {
         goalBase = 40
-        goalDesc = `⏱️ Gol ${i + 1}: Acertou o tempo (${g.half === 'first' ? '1ºT' : '2ºT'})! +40 pontos`
+        goalDesc = `⏱️ Gol ${i + 1} do BR: Acertou o tempo (${g.half === 'first' ? '1ºT' : '2ºT'})! +40 pontos`
       }
 
       // Bônus de proximidade de minutos se não acertou tudo
@@ -111,8 +125,8 @@ export function calculateScore(guess: Guess, result: GameResult): ScoreBreakdown
       }
     }
 
-    // Se todos os gols bateram perfeitamente e a quantidade de gols é igual
-    if (goalsMatch && matchCount === guess.goals && guess.goals > 0) {
+    // Se todos os gols bateram perfeitamente e o placar bateu
+    if (fullScoreMatch && matchCount === guess.goals && guess.goals > 0) {
       breakdown.exact_match = true
     }
 
@@ -137,7 +151,7 @@ export function calculateScore(guess: Guess, result: GameResult): ScoreBreakdown
   breakdown.half_match = !!halfMatch
 
   // Check exact match (all correct)
-  if (goalsMatch && playerMatch && halfMatch && minuteMatch) {
+  if (brazilGoalsMatch && playerMatch && halfMatch && minuteMatch) {
     breakdown.exact_match = true
     breakdown.base_points = 100
     breakdown.description.push('🎯 Acertou tudo! +100 pontos')
@@ -150,7 +164,7 @@ export function calculateScore(guess: Guess, result: GameResult): ScoreBreakdown
   } else if (halfMatch) {
     breakdown.base_points = 40
     breakdown.description.push('⏱️ Acertou o tempo! +40 pontos')
-  } else if (goalsMatch) {
+  } else if (brazilGoalsMatch) {
     breakdown.base_points = 30
     breakdown.description.push('🔢 Acertou a quantidade de gols! +30 pontos')
   }
