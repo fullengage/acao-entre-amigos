@@ -39,7 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             auxílio nos custos dos projetos e manutenção do espaço da{' '}
             <strong>Comunidade Voz de Deus</strong> em Novo Horizonte-SP.
           </p>
-          <div style={{ marginTop: 4 }}>
+          <div style={{ marginTop: 4, display: 'flex', gap: 16 }}>
+            <Link href="/regulamento" style={{ fontSize: '0.8rem', color: '#4a5a7a', textDecoration: 'none' }}>
+              📜 Regulamento
+            </Link>
             <Link href="/admin/dashboard" style={{ fontSize: '0.8rem', color: '#4a5a7a', textDecoration: 'none' }}>
               🔒 Área Administrativa
             </Link>
