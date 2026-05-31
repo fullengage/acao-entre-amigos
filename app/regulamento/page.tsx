@@ -310,9 +310,17 @@ export default function RegulamentoPage() {
                 empate na pontuação máxima, o prêmio será dividido igualmente entre os vencedores.
               </p>
               <p>
-                - <strong>Fundo Comunitário</strong>: Os outros 50% são integralmente revertidos
-                para a <strong>Comunidade Voz de Deus</strong> (Novo Horizonte-SP) para auxílio nos
-                custos dos projetos recreativos e manutenção do espaço físico da comunidade.
+                - <strong>Acerto Mínimo / Destinação Alternativa</strong>: Caso nenhum participante
+                consiga pontuar no jogo (todos terminem com 0 pontos), o valor correspondente ao
+                prêmio do vencedor (50% da arrecadação) não será distribuído e será revertido
+                integralmente (100% do total arrecadado no jogo) para as obras e manutenção da{' '}
+                <strong>Comunidade Voz de Deus</strong>.
+              </p>
+              <p>
+                - <strong>Fundo Comunitário</strong>: Em situações regulares de premiação, os outros 50%
+                são integralmente revertidos para a <strong>Comunidade Voz de Deus</strong> (Novo
+                Horizonte-SP) para auxílio nos custos dos projetos recreativos e manutenção do espaço
+                físico da comunidade.
               </p>
             </div>
           </div>
