@@ -38,7 +38,7 @@ export default function AdminParticipantesPage() {
         .filter((g) => g.participant_id === p.id)
         .map((g) => ({ ...g, payment: paymentMap.get(g.id) }))
 
-      const paidCount = pGuesses.filter((g) => g.payment?.status === 'confirmed').length
+      const paidCount = pGuesses.filter((g) => g.status === 'paid').length
       return {
         ...p,
         guesses: pGuesses,
@@ -68,16 +68,25 @@ export default function AdminParticipantesPage() {
     loadData()
   }
 
-  const filtered = rows.filter((r) => {
-    const matchSearch = r.name.toLowerCase().includes(search.toLowerCase()) || r.whatsapp.includes(search)
-    const matchFilter =
-      filter === 'all' ||
-      (filter === 'pending' && r.guesses.some((g) => g.payment?.status === 'pending')) ||
-      (filter === 'paid' && r.paidGuesses > 0)
-    return matchSearch && matchFilter
-  })
+  const filtered = rows
+    .map((r) => {
+      const filteredGuesses = r.guesses.filter((g) => {
+        if (filter === 'pending') return g.status === 'pending'
+        if (filter === 'paid') return g.status === 'paid'
+        return true
+      })
+      return {
+        ...r,
+        guesses: filteredGuesses,
+      }
+    })
+    .filter((r) => {
+      const matchSearch =
+        r.name.toLowerCase().includes(search.toLowerCase()) || r.whatsapp.includes(search)
+      return matchSearch && r.guesses.length > 0
+    })
 
-  const totalPending = rows.reduce((acc, r) => acc + r.guesses.filter((g) => g.payment?.status === 'pending').length, 0)
+  const totalPending = rows.reduce((acc, r) => acc + r.guesses.filter((g) => g.status === 'pending').length, 0)
 
   return (
     <div>
@@ -187,7 +196,7 @@ export default function AdminParticipantesPage() {
               {row.guesses.length > 0 && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12 }}>
                   {row.guesses.map((guess) => {
-                    const payStatus = guess.payment?.status || 'pending'
+                    const payStatus = guess.status
                     return (
                       <div
                         key={guess.id}
@@ -215,7 +224,7 @@ export default function AdminParticipantesPage() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span className={`badge badge-${payStatus}`}>
-                            {payStatus === 'pending' ? 'Pendente' : payStatus === 'confirmed' ? 'Pago' : 'Rejeitado'}
+                            {payStatus === 'pending' ? 'Pendente' : payStatus === 'paid' ? 'Pago' : 'Rejeitado'}
                           </span>
                           {payStatus === 'pending' && (
                             <>
