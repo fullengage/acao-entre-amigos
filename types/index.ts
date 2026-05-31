@@ -29,6 +29,12 @@ export interface Participant {
   created_at: string
 }
 
+export interface GoalDetail {
+  player_name: string
+  half: Half
+  minute: number
+}
+
 export interface Guess {
   id: string
   game_id: string
@@ -42,6 +48,7 @@ export interface Guess {
   created_at: string
   participant?: Participant
   game?: Game
+  goals_details?: GoalDetail[]
 }
 
 export interface GameResult {
@@ -53,6 +60,7 @@ export interface GameResult {
   goal_half?: Half
   goal_minute?: number
   created_at: string
+  goals_details?: GoalDetail[]
 }
 
 export interface Score {
@@ -100,6 +108,7 @@ export interface GuessFormData {
   player_name: string
   half: Half
   minute: number
+  goals_details: GoalDetail[]
   participant_name: string
   participant_whatsapp: string
   participant_email?: string

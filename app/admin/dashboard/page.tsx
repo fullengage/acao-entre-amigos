@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
+import { Guess } from '@/types'
 
 interface DashStats {
   totalGames: number
@@ -16,7 +17,7 @@ interface DashStats {
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashStats | null>(null)
-  const [recentGuesses, setRecentGuesses] = useState<any[]>([])
+  const [recentGuesses, setRecentGuesses] = useState<Guess[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -154,7 +155,16 @@ export default function AdminDashboardPage() {
                     {g.participant?.name || '—'}
                   </div>
                   <div style={{ color: '#8899bb', fontSize: '0.78rem' }}>
-                    Brasil x {g.game?.opponent} • {g.goals} gol(s) • {g.player_name} • {g.minute}'
+                    Brasil x {g.game?.opponent} • {g.goals} gol(s)
+                    {g.goals_details && g.goals_details.length > 0 ? (
+                      g.goals_details.map((gd, gdidx) => (
+                        <div key={gdidx} style={{ marginTop: 2, paddingLeft: 8 }}>
+                          • {gdidx + 1}º gol: {gd.player_name} ({gd.half === 'first' ? '1ºT' : '2ºT'} • {gd.minute}')
+                        </div>
+                      ))
+                    ) : (
+                      <span> • {g.player_name} • {g.half === 'first' ? '1ºT' : '2ºT'} • {g.minute}'</span>
+                    )}
                   </div>
                 </div>
                 <span className={`badge badge-${g.status}`}>

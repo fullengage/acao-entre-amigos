@@ -20,7 +20,8 @@ export default function AdminResultadoPage({ params }: Props) {
     opponent_goals: 0,
     goal_player: '',
     goal_half: 'first' as 'first' | 'second',
-    goal_minute: 1,
+    goal_minute: 10,
+    goals_details: [] as Array<{ player_name: string; half: 'first' | 'second'; minute: number }>,
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -36,27 +37,89 @@ export default function AdminResultadoPage({ params }: Props) {
   async function loadData(id: string) {
     const [gameRes, resultRes, guessesRes] = await Promise.all([
       supabase.from('games').select('*').eq('id', id).single(),
-      supabase.from('game_results').select('*').eq('game_id', id).single(),
+      supabase.from('game_results').select('*').eq('game_id', id).maybeSingle(),
       supabase.from('guesses').select('*, participant:participants(name)').eq('game_id', id).eq('status', 'paid'),
     ])
     setGame(gameRes.data)
-    if (resultRes.data) {
-      setExistingResult(resultRes.data)
+    
+    const resultData = resultRes.data
+    if (resultData) {
+      setExistingResult(resultData)
+      const legacyDetails = resultData.goals_details || (resultData.brazil_goals > 0 ? [{
+        player_name: resultData.goal_player || '',
+        half: resultData.goal_half || 'first',
+        minute: resultData.goal_minute || 10,
+      }] : [])
       setForm({
-        brazil_goals: resultRes.data.brazil_goals,
-        opponent_goals: resultRes.data.opponent_goals,
-        goal_player: resultRes.data.goal_player || '',
-        goal_half: resultRes.data.goal_half || 'first',
-        goal_minute: resultRes.data.goal_minute || 1,
+        brazil_goals: resultData.brazil_goals,
+        opponent_goals: resultData.opponent_goals,
+        goal_player: resultData.goal_player || '',
+        goal_half: (resultData.goal_half || 'first') as 'first' | 'second',
+        goal_minute: resultData.goal_minute || 10,
+        goals_details: legacyDetails,
       })
     }
     setGuesses(guessesRes.data || [])
     setLoading(false)
   }
 
+  function handleBrazilGoalsChange(g: number) {
+    setForm((f) => {
+      let newDetails = [...(f.goals_details || [])]
+      if (g > newDetails.length) {
+        const diff = g - newDetails.length
+        for (let i = 0; i < diff; i++) {
+          newDetails.push({ player_name: '', half: 'first', minute: 10 })
+        }
+      } else if (g < newDetails.length) {
+        newDetails = newDetails.slice(0, g)
+      }
+
+      const first = newDetails[0] || { player_name: '', half: 'first', minute: 10 }
+
+      return {
+        ...f,
+        brazil_goals: g,
+        goals_details: newDetails,
+        goal_player: first.player_name,
+        goal_half: first.half as 'first' | 'second',
+        goal_minute: first.minute,
+      }
+    })
+  }
+
+  function updateGoalDetail(index: number, field: string, value: any) {
+    setForm((f) => {
+      const newDetails = (f.goals_details || []).map((item, idx) => {
+        if (idx === index) {
+          return { ...item, [field]: value }
+        }
+        return item
+      })
+
+      const first = newDetails[0] || { player_name: '', half: 'first', minute: 10 }
+
+      return {
+        ...f,
+        goals_details: newDetails,
+        goal_player: first.player_name,
+        goal_half: first.half as 'first' | 'second',
+        goal_minute: first.minute,
+      }
+    })
+  }
+
   async function handleSaveResult() {
     setSaving(true)
-    const resultData = { game_id: gameId, ...form }
+    const resultData = {
+      game_id: gameId,
+      brazil_goals: form.brazil_goals,
+      opponent_goals: form.opponent_goals,
+      goal_player: form.goal_player,
+      goal_half: form.goal_half,
+      goal_minute: form.goal_minute,
+      goals_details: form.goals_details,
+    }
 
     if (existingResult) {
       await supabase.from('game_results').update(resultData).eq('game_id', gameId)
@@ -68,7 +131,7 @@ export default function AdminResultadoPage({ params }: Props) {
     await supabase.from('games').update({ status: 'finished' }).eq('id', gameId)
 
     // Recalculate scores for all paid guesses
-    const fullResult: GameResult = { id: existingResult?.id || '', created_at: '', game_id: gameId, ...form }
+    const fullResult: GameResult = { id: existingResult?.id || '', created_at: '', ...resultData }
     for (const guess of guesses) {
       const breakdown = calculateScore(guess, fullResult)
       await supabase.from('scores').upsert(
@@ -132,7 +195,7 @@ export default function AdminResultadoPage({ params }: Props) {
               min={0}
               max={20}
               value={form.brazil_goals}
-              onChange={(e) => setForm((f) => ({ ...f, brazil_goals: Number(e.target.value) }))}
+              onChange={(e) => handleBrazilGoalsChange(Number(e.target.value))}
               className="input-field"
               style={{ textAlign: 'center', fontSize: '2rem', fontWeight: 800, maxWidth: 100, margin: '0 auto' }}
             />
@@ -152,43 +215,60 @@ export default function AdminResultadoPage({ params }: Props) {
           </div>
         </div>
 
-        <h2 style={{ fontWeight: 700, color: 'white', marginBottom: 20, fontSize: '1.1rem' }}>
-          ⚽ Gol Principal (para pontuação)
-        </h2>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
-          <div>
-            <label style={labelStyle}>Autor do gol</label>
-            <input
-              className="input-field"
-              placeholder="Ex: Vinícius Júnior"
-              value={form.goal_player}
-              onChange={(e) => setForm((f) => ({ ...f, goal_player: e.target.value }))}
-            />
+        {form.brazil_goals > 0 && (
+          <div style={{ marginBottom: 28, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
+            <h2 style={{ fontWeight: 700, color: 'white', marginBottom: 20, fontSize: '1.1rem' }}>
+              ⚽ Detalhes dos Gols do Brasil
+            </h2>
+            
+            {form.goals_details.map((goal, idx) => (
+              <div key={idx} style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 12,
+                padding: 20,
+                marginBottom: 16,
+              }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#FFDF00', marginBottom: 12 }}>
+                  ⚽ {idx + 1}º Gol
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Autor do gol</label>
+                    <input
+                      className="input-field"
+                      placeholder="Ex: Neymar"
+                      value={goal.player_name}
+                      onChange={(e) => updateGoalDetail(idx, 'player_name', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Tempo</label>
+                    <select
+                      className="input-field"
+                      value={goal.half}
+                      onChange={(e) => updateGoalDetail(idx, 'half', e.target.value as 'first' | 'second')}
+                    >
+                      <option value="first">Primeiro Tempo</option>
+                      <option value="second">Segundo Tempo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Minuto (1-90)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={90}
+                      className="input-field"
+                      value={goal.minute}
+                      onChange={(e) => updateGoalDetail(idx, 'minute', Math.min(90, Math.max(1, Number(e.target.value))))}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div>
-            <label style={labelStyle}>Tempo</label>
-            <select
-              className="input-field"
-              value={form.goal_half}
-              onChange={(e) => setForm((f) => ({ ...f, goal_half: e.target.value as 'first' | 'second' }))}
-            >
-              <option value="first">Primeiro Tempo</option>
-              <option value="second">Segundo Tempo</option>
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Minuto (1-90)</label>
-            <input
-              type="number"
-              min={1}
-              max={90}
-              className="input-field"
-              value={form.goal_minute}
-              onChange={(e) => setForm((f) => ({ ...f, goal_minute: Math.min(90, Math.max(1, Number(e.target.value))) }))}
-            />
-          </div>
-        </div>
+        )}
 
         <button
           className="btn-primary btn-yellow"
@@ -227,8 +307,17 @@ export default function AdminResultadoPage({ params }: Props) {
                     <div style={{ fontWeight: 600, color: 'white', fontSize: '0.9rem' }}>
                       {(guess as any).participant?.name || '—'}
                     </div>
-                    <div style={{ color: '#8899bb', fontSize: '0.78rem' }}>
-                      {guess.goals} gol(s) • {guess.player_name} • {guess.half === 'first' ? '1ºT' : '2ºT'} • {guess.minute}'
+                    <div style={{ color: '#8899bb', fontSize: '0.78rem', marginTop: 4 }}>
+                      <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{guess.goals} gol(s) previstos</span>
+                      {guess.goals_details && guess.goals_details.length > 0 ? (
+                        guess.goals_details.map((g, gidx) => (
+                          <div key={gidx} style={{ marginTop: 2, paddingLeft: 8, color: '#8899bb' }}>
+                            • {gidx + 1}º gol: {g.player_name} ({g.half === 'first' ? '1ºT' : '2ºT'} • {g.minute}')
+                          </div>
+                        ))
+                      ) : (
+                        <span> • {guess.player_name} • {guess.half === 'first' ? '1ºT' : '2ºT'} • {guess.minute}'</span>
+                      )}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -236,8 +325,8 @@ export default function AdminResultadoPage({ params }: Props) {
                       {score.total} pts
                     </div>
                     {score.description.length > 0 && (
-                      <div style={{ fontSize: '0.7rem', color: '#8899bb' }}>
-                        {score.description[0]}
+                      <div style={{ fontSize: '0.7rem', color: '#8899bb', marginTop: 4 }}>
+                        {score.description.join(', ')}
                       </div>
                     )}
                   </div>

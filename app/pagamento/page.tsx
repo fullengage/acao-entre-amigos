@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { generatePixPayload, PIX_CONFIG, PIX_DISPLAY } from '@/lib/pix'
 import { halfLabel, goalsLabel, formatCurrency } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import QRCode from 'qrcode'
 import Link from 'next/link'
 
@@ -19,6 +20,7 @@ function PagamentoContent() {
   const [pixCode, setPixCode] = useState('')
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
+  const [guessDetails, setGuessDetails] = useState<any[]>([])
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP || '5511955501090'
 
@@ -34,6 +36,20 @@ function PagamentoContent() {
       margin: 2,
       color: { dark: '#002776', light: '#FFFFFF' },
     }).then(setQrDataUrl).catch(console.error)
+  }, [guessId])
+
+  useEffect(() => {
+    if (!guessId) return
+    supabase
+      .from('guesses')
+      .select('*')
+      .eq('id', guessId)
+      .single()
+      .then(({ data }) => {
+        if (data && data.goals_details) {
+          setGuessDetails(data.goals_details)
+        }
+      })
   }, [guessId])
 
   function copyPixCode() {
@@ -86,18 +102,40 @@ function PagamentoContent() {
           <h3 style={{ fontSize: '0.9rem', color: '#8899bb', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Resumo do Palpite
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {[
-              { label: 'Gols do Brasil', value: goalsLabel(goals) },
-              { label: 'Marcador', value: player },
-              { label: 'Tempo', value: halfLabel(half) },
-              { label: 'Minuto', value: `${minute}'` },
-            ].map((item) => (
-              <div key={item.label}>
-                <div style={{ fontSize: '0.75rem', color: '#8899bb' }}>{item.label}</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white' }}>{item.value}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#8899bb' }}>Gols do Brasil</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>{goalsLabel(goals)}</div>
+            </div>
+
+            {guessDetails.length > 0 ? (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12, marginTop: 4 }}>
+                <div style={{ fontSize: '0.75rem', color: '#8899bb', marginBottom: 6 }}>Detalhamento dos gols:</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {guessDetails.map((g, idx) => (
+                    <div key={idx} style={{ fontSize: '0.85rem', color: 'white', display: 'flex', gap: 8 }}>
+                      <span style={{ color: '#FFDF00', fontWeight: 600 }}>{idx + 1}º gol:</span>
+                      <span>{g.player_name} • {g.half === 'first' ? '1º Tempo' : '2º Tempo'} • {g.minute}'</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            ) : (
+              goals > 0 && (
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12, marginTop: 4, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[
+                    { label: 'Marcador Principal', value: player },
+                    { label: 'Tempo', value: halfLabel(half) },
+                    { label: 'Minuto', value: `${minute}'` },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <div style={{ fontSize: '0.75rem', color: '#8899bb' }}>{item.label}</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'white' }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
           </div>
         </div>
 

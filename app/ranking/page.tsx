@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { RankingEntry } from '@/types'
+import { RankingEntry, Guess } from '@/types'
 import { formatOrdinal, formatCurrency } from '@/lib/utils'
 
 async function getRanking(): Promise<RankingEntry[]> {
@@ -28,13 +28,13 @@ async function getStats() {
   }
 }
 
-async function getGuesses() {
+async function getGuesses(): Promise<Guess[]> {
   const { data } = await supabase
     .from('guesses')
     .select('*, game:games(opponent)')
     .eq('status', 'paid')
     .order('created_at', { ascending: false })
-  return data || []
+  return (data || []) as Guess[]
 }
 
 export const revalidate = 60
@@ -271,7 +271,13 @@ export default async function RankingPage() {
                           <div key={g.id} style={{ fontSize: '0.75rem', color: '#8899bb', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span>🇧🇷 x {g.game?.opponent}:</span>
                             <span style={{ color: '#FFDF00', fontWeight: 600 }}>{g.goals} gol{g.goals !== 1 ? 's' : ''}</span>
-                            <span>({g.player_name} • {g.half === 'first' ? '1ºT' : '2ºT'} • {g.minute}')</span>
+                            <span>({g.goals_details && g.goals_details.length > 0 ? (
+                              g.goals_details.map((gd, gdidx) => (
+                                `${gdidx > 0 ? ', ' : ''}${gd.player_name} (${gd.half === 'first' ? '1ºT' : '2ºT'} ${gd.minute}')`
+                              )).join('')
+                            ) : (
+                              `${g.player_name} (${g.half === 'first' ? '1ºT' : '2ºT'} ${g.minute}')`
+                            )})</span>
                           </div>
                         ))}
                       </div>

@@ -202,7 +202,16 @@ export default function AdminParticipantesPage() {
                         }}
                       >
                         <div style={{ fontSize: '0.82rem', color: '#aabbdd' }}>
-                          {guess.goals} gol(s) • {guess.player_name} • {guess.half === 'first' ? '1ºT' : '2ºT'} • {guess.minute}'
+                          <span style={{ fontWeight: 600, color: 'white' }}>{guess.goals} gol(s) previstos</span>
+                          {guess.goals_details && guess.goals_details.length > 0 ? (
+                            guess.goals_details.map((g, gidx) => (
+                              <div key={gidx} style={{ marginTop: 2, paddingLeft: 8, color: '#8899bb' }}>
+                                • {gidx + 1}º gol: {g.player_name} ({g.half === 'first' ? '1ºT' : '2ºT'} • {g.minute}')
+                              </div>
+                            ))
+                          ) : (
+                            <span> • {guess.player_name} • {guess.half === 'first' ? '1ºT' : '2ºT'} • {guess.minute}'</span>
+                          )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span className={`badge badge-${payStatus}`}>

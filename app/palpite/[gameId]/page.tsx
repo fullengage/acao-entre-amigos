@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Game, Player, GuessFormData } from '@/types'
+import { Game, Player, GuessFormData, GoalDetail } from '@/types'
 import { formatDate, formatTime, halfLabel, goalsLabel, isGuessesClosed } from '@/lib/utils'
 
 interface Props {
@@ -24,7 +24,8 @@ export default function PalpitePage({ params }: Props) {
     goals: 1,
     player_name: '',
     half: 'first',
-    minute: 1,
+    minute: 10,
+    goals_details: [{ player_name: '', half: 'first', minute: 10 }],
     participant_name: '',
     participant_whatsapp: '',
     participant_email: '',
@@ -48,6 +49,52 @@ export default function PalpitePage({ params }: Props) {
     setLoading(false)
   }
 
+  function handleGoalsChange(g: number) {
+    setForm((f) => {
+      let newDetails = [...(f.goals_details || [])]
+      if (g > newDetails.length) {
+        const diff = g - newDetails.length
+        for (let i = 0; i < diff; i++) {
+          newDetails.push({ player_name: '', half: 'first', minute: 10 })
+        }
+      } else if (g < newDetails.length) {
+        newDetails = newDetails.slice(0, g)
+      }
+      
+      const first = newDetails[0] || { player_name: '', half: 'first', minute: 10 }
+
+      return {
+        ...f,
+        goals: g,
+        goals_details: newDetails,
+        player_name: first.player_name,
+        half: first.half,
+        minute: first.minute,
+      }
+    })
+  }
+
+  function updateGoalDetail(index: number, field: keyof GoalDetail, value: any) {
+    setForm((f) => {
+      const newDetails = (f.goals_details || []).map((item, idx) => {
+        if (idx === index) {
+          return { ...item, [field]: value }
+        }
+        return item
+      })
+
+      const first = newDetails[0] || { player_name: '', half: 'first', minute: 10 }
+
+      return {
+        ...f,
+        goals_details: newDetails,
+        player_name: first.player_name,
+        half: first.half,
+        minute: first.minute,
+      }
+    })
+  }
+
   async function handleSubmit() {
     setError('')
     if (!game) return
@@ -57,7 +104,10 @@ export default function PalpitePage({ params }: Props) {
     }
     if (!form.participant_name.trim()) { setError('Informe seu nome.'); return }
     if (!form.participant_whatsapp.trim()) { setError('Informe seu WhatsApp.'); return }
-    if (!form.player_name) { setError('Escolha um jogador.'); return }
+    if (form.goals_details.some(g => !g.player_name)) {
+      setError('Escolha o jogador para todos os gols previstos.');
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -86,6 +136,7 @@ export default function PalpitePage({ params }: Props) {
           player_name: form.player_name,
           half: form.half,
           minute: form.minute,
+          goals_details: form.goals_details,
           status: 'pending',
         })
         .select()
@@ -179,6 +230,8 @@ export default function PalpitePage({ params }: Props) {
             form={form}
             setForm={setForm}
             players={players}
+            onGoalsChange={handleGoalsChange}
+            onUpdateGoal={updateGoalDetail}
             onNext={() => setStep(2)}
           />
         ) : (
@@ -200,11 +253,15 @@ function PalpiteStep({
   form,
   setForm,
   players,
+  onGoalsChange,
+  onUpdateGoal,
   onNext,
 }: {
   form: GuessFormData
   setForm: React.Dispatch<React.SetStateAction<GuessFormData>>
   players: Player[]
+  onGoalsChange: (g: number) => void
+  onUpdateGoal: (index: number, field: keyof GoalDetail, value: any) => void
   onNext: () => void
 }) {
   const goalsOptions = [1, 2, 3, 4, 5]
@@ -244,6 +301,8 @@ function PalpiteStep({
     return acc
   }, {})
 
+  const hasEmptyPlayer = (form.goals_details || []).some(g => !g.player_name)
+
   return (
     <div className="glass-card" style={{ padding: 32 }}>
       <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 24, color: 'white' }}>
@@ -263,7 +322,7 @@ function PalpiteStep({
                 name="goals"
                 value={g}
                 checked={form.goals === g}
-                onChange={() => setForm((f) => ({ ...f, goals: g }))}
+                onChange={() => onGoalsChange(g)}
               />
               <div className="option-card-inner" style={{ fontSize: '1.1rem', fontWeight: 700 }}>
                 {g === 5 ? '5+' : g}
@@ -276,87 +335,110 @@ function PalpiteStep({
         </div>
       </div>
 
-      {/* Player — grouped by position */}
+      {/* Detalhamento de cada gol */}
       <div style={{ marginBottom: 28 }}>
         <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: '#aabbdd' }}>
-          2. Quem fará o gol principal?
+          2. Detalhes de cada gol do Brasil:
         </label>
-        {Object.entries(grouped).map(([pos, items]) => (
-          <div key={pos} style={{ marginBottom: 14 }}>
-            <div style={{
-              fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.08em', marginBottom: 7, paddingBottom: 4,
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              color: posColor[pos as keyof typeof posColor] || '#8899bb',
-            }}>
-              {posLabel[pos as keyof typeof posLabel] || '➕ Outros'}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-              {items.map((p) => (
-                <label key={p.id} className="option-card">
-                  <input
-                    type="radio"
-                    name="player"
-                    value={p.name}
-                    checked={form.player_name === p.name}
-                    onChange={() => setForm((f) => ({ ...f, player_name: p.name }))}
-                  />
-                  <div className="option-card-inner" style={{
-                    textAlign: 'left', fontSize: '0.85rem',
-                    padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6,
+        
+        {(form.goals_details || []).map((goal, idx) => (
+          <div key={idx} style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 20,
+          }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#FFDF00', marginBottom: 16 }}>
+              ⚽ {idx + 1}º Gol do Brasil
+            </h3>
+
+            {/* Jogador */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: '0.8rem', fontWeight: 600, color: '#aabbdd' }}>
+                Quem fará o gol?
+              </label>
+              {Object.entries(grouped).map(([pos, items]) => (
+                <div key={pos} style={{ marginBottom: 10 }}>
+                  <div style={{
+                    fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
+                    letterSpacing: '0.08em', marginBottom: 4, paddingBottom: 2,
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    color: posColor[pos as keyof typeof posColor] || '#8899bb',
                   }}>
-                    <span>{p.name === 'Outro jogador' ? '➕' : '⚽'}</span>
-                    <span>{p.name}</span>
+                    {posLabel[pos as keyof typeof posLabel] || 'Outros'}
                   </div>
-                </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {items.map((p) => (
+                      <label key={p.id} className="option-card">
+                        <input
+                          type="radio"
+                          name={`player-${idx}`}
+                          value={p.name}
+                          checked={goal.player_name === p.name}
+                          onChange={() => onUpdateGoal(idx, 'player_name', p.name)}
+                        />
+                        <div className="option-card-inner" style={{
+                          textAlign: 'left', fontSize: '0.78rem',
+                          padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 5,
+                        }}>
+                          <span>{p.name === 'Outro jogador' ? '➕' : '⚽'}</span>
+                          <span>{p.name}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
+              {goal.player_name && (
+                <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#8899bb' }}>
+                  Selecionado: <strong style={{ color: '#00C94F' }}>{goal.player_name}</strong>
+                </div>
+              )}
+            </div>
+
+            {/* Tempo & Minuto */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: '0.8rem', fontWeight: 600, color: '#aabbdd' }}>
+                  Tempo
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  {(['first', 'second'] as const).map((h) => (
+                    <label key={h} className="option-card">
+                      <input
+                        type="radio"
+                        name={`half-${idx}`}
+                        value={h}
+                        checked={goal.half === h}
+                        onChange={() => onUpdateGoal(idx, 'half', h)}
+                      />
+                      <div className="option-card-inner" style={{ padding: '8px', fontSize: '0.78rem' }}>
+                        {h === 'first' ? '1ºT' : '2ºT'}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: '0.8rem', fontWeight: 600, color: '#aabbdd' }}>
+                  Minuto <span style={{ color: '#8899bb', fontWeight: 400 }}>(1-90)</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={goal.minute}
+                  onChange={(e) => onUpdateGoal(idx, 'minute', Math.min(90, Math.max(1, Number(e.target.value))))}
+                  className="input-field"
+                  style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                  placeholder="Ex: 18"
+                />
+              </div>
             </div>
           </div>
         ))}
-        {form.player_name && (
-          <div style={{ marginTop: 6, fontSize: '0.8rem', color: '#8899bb' }}>
-            Selecionado: <strong style={{ color: '#00C94F' }}>{form.player_name}</strong>
-          </div>
-        )}
-      </div>
-
-      {/* Half */}
-      <div style={{ marginBottom: 28 }}>
-        <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: '#aabbdd' }}>
-          3. Em qual tempo acontecerá o gol?
-        </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {(['first', 'second'] as const).map((h) => (
-            <label key={h} className="option-card">
-              <input
-                type="radio"
-                name="half"
-                value={h}
-                checked={form.half === h}
-                onChange={() => setForm((f) => ({ ...f, half: h }))}
-              />
-              <div className="option-card-inner">
-                {h === 'first' ? '1º Tempo' : '2º Tempo'}
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Minute */}
-      <div style={{ marginBottom: 32 }}>
-        <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, color: '#aabbdd' }}>
-          4. Em qual minuto? <span style={{ color: '#8899bb', fontWeight: 400 }}>(1 a 90)</span>
-        </label>
-        <input
-          type="number"
-          min={1}
-          max={90}
-          value={form.minute}
-          onChange={(e) => setForm((f) => ({ ...f, minute: Math.min(90, Math.max(1, Number(e.target.value))) }))}
-          className="input-field"
-          placeholder="Ex: 38"
-        />
       </div>
 
       {/* Summary */}
@@ -373,15 +455,19 @@ function PalpiteStep({
       >
         <strong style={{ color: '#FFDF00' }}>Resumo do palpite:</strong>
         <br />
-        {goalsLabel(form.goals)} • {form.player_name || '(nenhum jogador)'} •{' '}
-        {halfLabel(form.half)} • {form.minute}' minuto
+        <span style={{ fontWeight: 600, color: 'white' }}>{goalsLabel(form.goals)}</span>
+        {(form.goals_details || []).map((g, idx) => (
+          <div key={idx} style={{ marginTop: 5, fontSize: '0.8rem', color: '#ccddee' }}>
+            📍 {idx + 1}º gol: {g.player_name || '(escolha o jogador)'} • {g.half === 'first' ? '1º Tempo' : '2º Tempo'} • {g.minute}' minuto
+          </div>
+        ))}
       </div>
 
       <button
         className="btn-primary"
         style={{ width: '100%', justifyContent: 'center', fontSize: '1rem' }}
         onClick={onNext}
-        disabled={!form.player_name}
+        disabled={hasEmptyPlayer}
       >
         Continuar →
       </button>
