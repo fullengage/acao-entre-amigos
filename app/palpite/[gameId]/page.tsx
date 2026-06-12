@@ -51,6 +51,7 @@ export default function PalpitePage({ params }: Props) {
   }
 
   function handleGoalsChange(g: number) {
+    setError('')
     setForm((f) => {
       let newDetails = [...(f.goals_details || [])]
       if (g > newDetails.length) {
@@ -76,6 +77,7 @@ export default function PalpitePage({ params }: Props) {
   }
 
   function updateGoalDetail(index: number, field: keyof GoalDetail, value: any) {
+    setError('')
     setForm((f) => {
       const newDetails = (f.goals_details || []).map((item, idx) => {
         if (idx === index) {
@@ -107,6 +109,10 @@ export default function PalpitePage({ params }: Props) {
     if (!form.participant_whatsapp.trim()) { setError('Informe seu WhatsApp.'); return }
     if (form.goals_details.some(g => !g.player_name)) {
       setError('Escolha o jogador para todos os gols previstos.');
+      return
+    }
+    if (form.goals_details.some(g => !g.minute || Number(g.minute) < 1 || Number(g.minute) > 90)) {
+      setError('Informe o minuto de todos os gols (entre 1 e 90).');
       return
     }
 
@@ -235,7 +241,16 @@ export default function PalpitePage({ params }: Props) {
             game={game}
             onGoalsChange={handleGoalsChange}
             onUpdateGoal={updateGoalDetail}
-            onNext={() => setStep(2)}
+            onNext={() => {
+              const hasInvalidMinute = (form.goals_details || []).some(g => !g.minute || Number(g.minute) < 1 || Number(g.minute) > 90)
+              if (hasInvalidMinute) {
+                setError('Informe o minuto de todos os gols (entre 1 e 90) antes de continuar.')
+                return
+              }
+              setError('')
+              setStep(2)
+            }}
+            error={error}
           />
         ) : (
           <ParticipantStep
@@ -260,6 +275,7 @@ function PalpiteStep({
   onGoalsChange,
   onUpdateGoal,
   onNext,
+  error,
 }: {
   form: GuessFormData
   setForm: React.Dispatch<React.SetStateAction<GuessFormData>>
@@ -268,6 +284,7 @@ function PalpiteStep({
   onGoalsChange: (g: number) => void
   onUpdateGoal: (index: number, field: keyof GoalDetail, value: any) => void
   onNext: () => void
+  error?: string
 }) {
   const goalsOptions = [0, 1, 2, 3, 4, 5]
 
@@ -462,7 +479,17 @@ function PalpiteStep({
                     min={1}
                     max={90}
                     value={goal.minute}
-                    onChange={(e) => onUpdateGoal(idx, 'minute', Math.min(90, Math.max(1, Number(e.target.value))))}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '') {
+                        onUpdateGoal(idx, 'minute', '' as any)
+                      } else {
+                        const num = Number(val)
+                        if (!isNaN(num)) {
+                          onUpdateGoal(idx, 'minute', Math.min(90, Math.max(1, num)))
+                        }
+                      }
+                    }}
                     className="input-field"
                     style={{ padding: '8px 12px', fontSize: '0.85rem' }}
                     placeholder="Ex: 18"
@@ -497,6 +524,22 @@ function PalpiteStep({
           </div>
         ))}
       </div>
+
+      {error && (
+        <div
+          style={{
+            background: 'rgba(220,38,38,0.15)',
+            border: '1px solid rgba(220,38,38,0.3)',
+            borderRadius: 10,
+            padding: '12px 16px',
+            color: '#f87171',
+            fontSize: '0.85rem',
+            marginBottom: 20,
+          }}
+        >
+          ⚠️ {error}
+        </div>
+      )}
 
       <button
         className="btn-primary"

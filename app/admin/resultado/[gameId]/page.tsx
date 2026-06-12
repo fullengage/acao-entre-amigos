@@ -110,6 +110,11 @@ export default function AdminResultadoPage({ params }: Props) {
   }
 
   async function handleSaveResult() {
+    const hasInvalidMinute = form.brazil_goals > 0 && (form.goals_details || []).some(g => !g.minute || Number(g.minute) < 1 || Number(g.minute) > 90)
+    if (hasInvalidMinute) {
+      alert('Informe o minuto de todos os gols do Brasil (entre 1 e 90).')
+      return
+    }
     setSaving(true)
     const resultData = {
       game_id: gameId,
@@ -261,7 +266,17 @@ export default function AdminResultadoPage({ params }: Props) {
                       max={90}
                       className="input-field"
                       value={goal.minute}
-                      onChange={(e) => updateGoalDetail(idx, 'minute', Math.min(90, Math.max(1, Number(e.target.value))))}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === '') {
+                          updateGoalDetail(idx, 'minute', '' as any)
+                        } else {
+                          const num = Number(val)
+                          if (!isNaN(num)) {
+                            updateGoalDetail(idx, 'minute', Math.min(90, Math.max(1, num)))
+                          }
+                        }
+                      }}
                     />
                   </div>
                 </div>
