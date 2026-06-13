@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Participant, Guess, Payment } from '@/types'
+import { Participant, Guess, Payment, Player, Game, GameResult } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { calculateScore } from '@/lib/scoring'
 
 interface ParticipantRow extends Participant {
   guesses: (Guess & { payment?: Payment })[]
@@ -14,22 +15,34 @@ interface ParticipantRow extends Participant {
 
 export default function AdminParticipantesPage() {
   const [rows, setRows] = useState<ParticipantRow[]>([])
+  const [games, setGames] = useState<Game[]>([])
+  const [players, setPlayers] = useState<Player[]>([])
+  const [gameResults, setGameResults] = useState<GameResult[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid'>('all')
   const [search, setSearch] = useState('')
+  const [editingGuess, setEditingGuess] = useState<Guess | null>(null)
+  const [editForm, setEditForm] = useState<Guess | null>(null)
 
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
-    const [participantsRes, guessesRes, paymentsRes] = await Promise.all([
+    const [participantsRes, guessesRes, paymentsRes, gamesRes, playersRes, resultsRes] = await Promise.all([
       supabase.from('participants').select('*').order('created_at', { ascending: false }),
       supabase.from('guesses').select('*').order('created_at', { ascending: false }),
       supabase.from('payments').select('*'),
+      supabase.from('games').select('*'),
+      supabase.from('players').select('*'),
+      supabase.from('game_results').select('*'),
     ])
 
     const participants = participantsRes.data || []
     const guesses = guessesRes.data || []
     const payments = paymentsRes.data || []
+    
+    setGames(gamesRes.data || [])
+    setPlayers(playersRes.data || [])
+    setGameResults(resultsRes.data || [])
 
     const paymentMap = new Map(payments.map((p) => [p.guess_id, p]))
 
@@ -65,6 +78,96 @@ export default function AdminParticipantesPage() {
       supabase.from('payments').update({ status: 'rejected' }).eq('guess_id', guessId),
       supabase.from('guesses').update({ status: 'rejected' }).eq('id', guessId),
     ])
+    loadData()
+  }
+
+  function handleEditGoalsChange(g: number) {
+    if (!editForm) return
+    setEditForm((f) => {
+      if (!f) return null
+      let newDetails = [...(f.goals_details || [])]
+      if (g > newDetails.length) {
+        const diff = g - newDetails.length
+        for (let i = 0; i < diff; i++) {
+          newDetails.push({ player_name: '', half: 'first', minute: 10 })
+        }
+      } else if (g < newDetails.length) {
+        newDetails = newDetails.slice(0, g)
+      }
+      return {
+        ...f,
+        goals: g,
+        goals_details: newDetails,
+      }
+    })
+  }
+
+  function updateEditGoalDetail(index: number, field: string, value: any) {
+    if (!editForm) return
+    setEditForm((f) => {
+      if (!f) return null
+      const newDetails = (f.goals_details || []).map((item, idx) => {
+        if (idx === index) {
+          return { ...item, [field]: value }
+        }
+        return item
+      })
+      return {
+        ...f,
+        goals_details: newDetails,
+      }
+    })
+  }
+
+  async function saveEditedGuess() {
+    if (!editForm) return
+
+    const hasInvalidMinute = editForm.goals > 0 && (editForm.goals_details || []).some(g => !g.minute || Number(g.minute) < 1 || Number(g.minute) > 90)
+    if (hasInvalidMinute) {
+      alert('Informe o minuto de todos os gols (entre 1 e 90).')
+      return
+    }
+    const hasEmptyPlayer = editForm.goals > 0 && (editForm.goals_details || []).some(g => !g.player_name)
+    if (hasEmptyPlayer) {
+      alert('Selecione o jogador para todos os gols.')
+      return
+    }
+
+    const firstGoal = editForm.goals_details?.[0] || { player_name: '', half: 'first', minute: 10 }
+
+    const { error: updateErr } = await supabase.from('guesses').update({
+      goals: editForm.goals,
+      opponent_goals: editForm.opponent_goals,
+      player_name: firstGoal.player_name,
+      half: firstGoal.half,
+      minute: firstGoal.minute,
+      goals_details: editForm.goals_details,
+    }).eq('id', editForm.id)
+
+    if (updateErr) {
+      alert('Erro ao salvar palpite: ' + updateErr.message)
+      return
+    }
+
+    const result = gameResults.find((r) => r.game_id === editForm.game_id)
+    if (result && editForm.status === 'paid') {
+      const breakdown = calculateScore(editForm, result)
+      await supabase.from('scores').upsert(
+        {
+          guess_id: editForm.id,
+          participant_id: editForm.participant_id,
+          game_id: editForm.game_id,
+          points: breakdown.total,
+          breakdown: breakdown,
+        },
+        { onConflict: 'guess_id' }
+      )
+    } else if (editForm.status !== 'paid') {
+      await supabase.from('scores').delete().eq('guess_id', editForm.id)
+    }
+
+    setEditingGuess(null)
+    setEditForm(null)
     loadData()
   }
 
@@ -226,6 +329,24 @@ export default function AdminParticipantesPage() {
                           <span className={`badge badge-${payStatus}`}>
                             {payStatus === 'pending' ? 'Pendente' : payStatus === 'paid' ? 'Pago' : 'Rejeitado'}
                           </span>
+                          <button
+                            onClick={() => {
+                              setEditingGuess(guess)
+                              setEditForm(JSON.parse(JSON.stringify(guess)))
+                            }}
+                            style={{
+                              padding: '3px 10px',
+                              background: 'rgba(255,255,255,0.05)',
+                              border: '1px solid rgba(255,255,255,0.1)',
+                              borderRadius: 6,
+                              color: '#aabbdd',
+                              cursor: 'pointer',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            ✏️ Editar
+                          </button>
                           {payStatus === 'pending' && (
                             <>
                               <button
@@ -270,6 +391,167 @@ export default function AdminParticipantesPage() {
           ))}
         </div>
       )}
+
+      {/* Modal de Edição de Palpite */}
+      {editingGuess && editForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: 16
+        }}>
+          <div className="glass-card" style={{
+            maxWidth: 500,
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: 32,
+            border: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 20, color: 'white' }}>
+              ✏️ Editar Palpite
+            </h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Placar */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Gols do Brasil</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    className="input-field"
+                    value={editForm.goals}
+                    onChange={(e) => handleEditGoalsChange(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>
+                    Gols do {games.find(g => g.id === editForm.game_id)?.opponent || 'Adversário'}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    className="input-field"
+                    value={editForm.opponent_goals}
+                    onChange={(e) => setEditForm({ ...editForm, opponent_goals: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              {/* Detalhes dos Gols */}
+              {editForm.goals > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
+                  <div style={{ fontWeight: 600, color: 'white', fontSize: '0.9rem' }}>Detalhes dos Gols do Brasil</div>
+                  {(editForm.goals_details || []).map((goal, idx) => (
+                    <div key={idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 12 }}>
+                      <div style={{ color: '#FFDF00', fontSize: '0.78rem', fontWeight: 700, marginBottom: 8 }}>⚽ {idx + 1}º Gol</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div>
+                          <label style={{ ...labelStyle, fontSize: '0.75rem', marginBottom: 4 }}>Autor do gol</label>
+                          <select
+                            className="input-field"
+                            style={{ fontSize: '0.82rem', padding: '6px 10px' }}
+                            value={goal.player_name}
+                            onChange={(e) => updateEditGoalDetail(idx, 'player_name', e.target.value)}
+                          >
+                            <option value="">-- Selecione o jogador --</option>
+                            {players.filter(p => p.game_id === editForm.game_id).map(p => (
+                              <option key={p.id} value={p.name}>{p.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div>
+                            <label style={{ ...labelStyle, fontSize: '0.75rem', marginBottom: 4 }}>Tempo</label>
+                            <select
+                              className="input-field"
+                              style={{ fontSize: '0.82rem', padding: '6px 10px' }}
+                              value={goal.half}
+                              onChange={(e) => updateEditGoalDetail(idx, 'half', e.target.value as 'first' | 'second')}
+                            >
+                              <option value="first">1º Tempo</option>
+                              <option value="second">2º Tempo</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ ...labelStyle, fontSize: '0.75rem', marginBottom: 4 }}>Minuto (1-90)</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={90}
+                              className="input-field"
+                              style={{ fontSize: '0.82rem', padding: '6px 10px' }}
+                              value={goal.minute}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (val === '') {
+                                  updateEditGoalDetail(idx, 'minute', '' as any)
+                                } else {
+                                  const num = parseInt(val, 10)
+                                  if (!isNaN(num)) {
+                                    updateEditGoalDetail(idx, 'minute', num)
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Botões de Ação */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                <button
+                  onClick={() => {
+                    setEditingGuess(null)
+                    setEditForm(null)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 8,
+                    color: '#aabbdd',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveEditedGuess}
+                  className="btn-primary btn-yellow"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  marginBottom: 8,
+  fontWeight: 600,
+  color: '#aabbdd',
+  fontSize: '0.85rem',
 }

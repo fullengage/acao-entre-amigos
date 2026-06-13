@@ -256,6 +256,7 @@ export default function PalpitePage({ params }: Props) {
           <ParticipantStep
             form={form}
             setForm={setForm}
+            game={game}
             onBack={() => setStep(1)}
             onSubmit={handleSubmit}
             submitting={submitting}
@@ -582,6 +583,7 @@ function PalpiteStep({
 function ParticipantStep({
   form,
   setForm,
+  game,
   onBack,
   onSubmit,
   submitting,
@@ -589,11 +591,14 @@ function ParticipantStep({
 }: {
   form: GuessFormData
   setForm: React.Dispatch<React.SetStateAction<GuessFormData>>
+  game: Game | null
   onBack: () => void
   onSubmit: () => void
   submitting: boolean
   error: string
 }) {
+  const [confirmed, setConfirmed] = useState(false)
+
   return (
     <div className="glass-card" style={{ padding: 32 }}>
       <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 8, color: 'white' }}>
@@ -603,7 +608,31 @@ function ParticipantStep({
         Para registrar seu palpite e entrar no ranking.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 28 }}>
+      {/* Recapitulativo do Palpite */}
+      <div
+        style={{
+          background: 'rgba(255,223,0,0.06)',
+          border: '1px solid rgba(255,223,0,0.2)',
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 24,
+          fontSize: '0.85rem',
+          color: '#aabbdd',
+        }}
+      >
+        <strong style={{ color: '#FFDF00' }}>Confirme o seu palpite:</strong>
+        <br />
+        <span style={{ fontWeight: 600, color: 'white', fontSize: '1.15rem' }}>
+          🇧🇷 Brasil {form.goals} x {form.opponent_goals} {game?.opponent || 'Adversário'}
+        </span>
+        {form.goals > 0 && (form.goals_details || []).map((g, idx) => (
+          <div key={idx} style={{ marginTop: 5, fontSize: '0.8rem', color: '#ccddee' }}>
+            📍 {idx + 1}º gol: {g.player_name || '(escolha o jogador)'} • {g.half === 'first' ? '1º Tempo' : '2º Tempo'} • {g.minute}' minuto
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
         <div>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#aabbdd', fontSize: '0.9rem' }}>
             Nome completo *
@@ -644,6 +673,29 @@ function ParticipantStep({
         </div>
       </div>
 
+      {/* Checkbox de Confirmação */}
+      <label style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        marginBottom: 24,
+        cursor: 'pointer',
+        fontSize: '0.82rem',
+        color: '#aabbdd',
+        lineHeight: '1.4'
+      }}>
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(e) => setConfirmed(e.target.checked)}
+          style={{ marginTop: 2 }}
+        />
+        <span>
+          Confirmo que o placar e os detalhes dos gols acima estão corretos. 
+          <strong style={{ color: '#FFDF00' }}> Não será possível alterar após enviar.</strong>
+        </span>
+      </label>
+
       {error && (
         <div
           style={{
@@ -680,7 +732,7 @@ function ParticipantStep({
           className="btn-primary btn-yellow"
           style={{ flex: 2, justifyContent: 'center' }}
           onClick={onSubmit}
-          disabled={submitting}
+          disabled={submitting || !confirmed}
         >
           {submitting ? 'Enviando...' : '✅ Enviar Palpite'}
         </button>
