@@ -314,7 +314,12 @@ export default function AdminParticipantesPage() {
                         }}
                       >
                         <div style={{ fontSize: '0.82rem', color: '#aabbdd' }}>
-                          <span style={{ fontWeight: 600, color: 'white' }}>Brasil {guess.goals} x {guess.opponent_goals ?? 0}</span>
+                          <span style={{ fontWeight: 600, color: 'white' }}>
+                            Brasil {guess.goals} x {guess.opponent_goals ?? 0}
+                          </span>
+                          <span style={{ color: '#FFDF00', fontSize: '0.75rem', marginLeft: 6, fontWeight: 600 }}>
+                            (vs {games.find(g => g.id === guess.game_id)?.opponent || 'Adversário'})
+                          </span>
                           {guess.goals_details && guess.goals_details.length > 0 ? (
                             guess.goals_details.map((g, gidx) => (
                               <div key={gidx} style={{ marginTop: 2, paddingLeft: 8, color: '#8899bb' }}>
