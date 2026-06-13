@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { RankingEntry, Guess } from '@/types'
+import { RankingEntry, Guess, Game } from '@/types'
 import { formatOrdinal, formatCurrency } from '@/lib/utils'
 
 async function getRanking(): Promise<RankingEntry[]> {
@@ -10,21 +10,63 @@ async function getRanking(): Promise<RankingEntry[]> {
   return data || []
 }
 
-async function getStats() {
+async function getCurrentGame(): Promise<Game | null> {
+  // 1. Procurar jogo ao vivo
+  const { data: liveGame } = await supabase
+    .from('games')
+    .select('*')
+    .eq('status', 'live')
+    .limit(1)
+    .maybeSingle()
+
+  if (liveGame) return liveGame as Game
+
+  // 2. Se não houver ao vivo, procurar o próximo jogo agendado (upcoming)
+  const { data: upcomingGame } = await supabase
+    .from('games')
+    .select('*')
+    .eq('status', 'upcoming')
+    .order('match_date', { ascending: true })
+    .order('match_time', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (upcomingGame) return upcomingGame as Game
+
+  // 3. Se não houver próximos jogos, pegar o último jogo finalizado
+  const { data: finishedGame } = await supabase
+    .from('games')
+    .select('*')
+    .eq('status', 'finished')
+    .order('match_date', { ascending: false })
+    .order('match_time', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return (finishedGame || null) as Game | null
+}
+
+async function getStats(gameId?: string) {
+  if (!gameId) {
+    return {
+      totalGuesses: 0,
+      totalCollected: 0,
+      prizeAmount: 0,
+    }
+  }
+
   const { count: totalGuesses } = await supabase
     .from('guesses')
     .select('*', { count: 'exact', head: true })
+    .eq('game_id', gameId)
     .eq('status', 'paid')
 
-  const { count: confirmedPayments } = await supabase
-    .from('payments')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'confirmed')
+  const paidCount = totalGuesses || 0
 
   return {
-    totalGuesses: totalGuesses || 0,
-    totalCollected: (confirmedPayments || 0) * 10,
-    prizeAmount: ((confirmedPayments || 0) * 10) * 0.5,
+    totalGuesses: paidCount,
+    totalCollected: paidCount * 10,
+    prizeAmount: (paidCount * 10) * 0.5,
   }
 }
 
@@ -40,9 +82,10 @@ async function getGuesses(): Promise<Guess[]> {
 export const revalidate = 60
 
 export default async function RankingPage() {
+  const currentGame = await getCurrentGame()
   const [ranking, stats, guesses] = await Promise.all([
     getRanking(),
-    getStats(),
+    getStats(currentGame?.id),
     getGuesses(),
   ])
 
@@ -95,15 +138,19 @@ export default async function RankingPage() {
           }}
         >
           {[
-            { emoji: '🎯', label: 'Palpites Válidos', value: stats.totalGuesses.toString() },
+            {
+              emoji: '🎯',
+              label: `Palpites Válidos ${currentGame ? `(Brasil x ${currentGame.opponent})` : ''}`,
+              value: stats.totalGuesses.toString(),
+            },
             {
               emoji: '💰',
-              label: 'Total Arrecadado',
+              label: `Total Arrecadado ${currentGame ? `(Brasil x ${currentGame.opponent})` : ''}`,
               value: formatCurrency(stats.totalCollected),
             },
             {
               emoji: '🏆',
-              label: 'Premiação Estimada',
+              label: `Premiação Estimada ${currentGame ? `(Brasil x ${currentGame.opponent})` : ''}`,
               value: formatCurrency(stats.prizeAmount),
               highlight: true,
             },
