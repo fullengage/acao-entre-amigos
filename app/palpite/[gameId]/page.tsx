@@ -289,30 +289,56 @@ function PalpiteStep({
   const goalsOptions = [0, 1, 2, 3, 4, 5]
 
   // Agrupa por posição
-  const posOrder = ['Atacante', 'Meia', 'Zagueiro', ''] as const
+  const posOrder = ['Atacante', 'Meia', 'Zagueiro', 'Goleiro', ''] as const
   type PosKey = typeof posOrder[number]
   const posLabel: Record<PosKey, string> = {
     'Atacante': '⚡ Atacantes',
     'Meia': '🔵 Meias',
     'Zagueiro': '🛡️ Defensores',
+    'Goleiro': '🧤 Goleiros',
     '': '➕ Outros',
   }
   const posColor: Record<PosKey, string> = {
     'Atacante': '#f59e0b',
     'Meia': '#60a5fa',
     'Zagueiro': '#34d399',
+    'Goleiro': '#a855f7',
     '': '#8899bb',
   }
 
   const fallback: Player[] = [
-    { id:'f1', game_id:'', name:'Vinícius Júnior', position:'Atacante', created_at:'' },
-    { id:'f2', game_id:'', name:'Raphinha', position:'Atacante', created_at:'' },
-    { id:'f3', game_id:'', name:'Endrick', position:'Atacante', created_at:'' },
-    { id:'f4', game_id:'', name:'Neymar', position:'Atacante', created_at:'' },
-    { id:'f5', game_id:'', name:'Gabriel Martinelli', position:'Atacante', created_at:'' },
-    { id:'f6', game_id:'', name:'Bruno Guimarães', position:'Meia', created_at:'' },
-    { id:'f7', game_id:'', name:'Lucas Paquetá', position:'Meia', created_at:'' },
-    { id:'f8', game_id:'', name:'Outro jogador', position:'', created_at:'' },
+    // Goleiros
+    { id: 'fg1', game_id: '', name: 'Alisson', position: 'Goleiro', created_at: '' },
+    { id: 'fg2', game_id: '', name: 'Ederson', position: 'Goleiro', created_at: '' },
+    { id: 'fg3', game_id: '', name: 'Weverton', position: 'Goleiro', created_at: '' },
+    // Defensores
+    { id: 'fd1', game_id: '', name: 'Alex Sandro', position: 'Zagueiro', created_at: '' },
+    { id: 'fd2', game_id: '', name: 'Bremer', position: 'Zagueiro', created_at: '' },
+    { id: 'fd3', game_id: '', name: 'Danilo', position: 'Zagueiro', created_at: '' },
+    { id: 'fd4', game_id: '', name: 'Douglas Santos', position: 'Zagueiro', created_at: '' },
+    { id: 'fd5', game_id: '', name: 'Gabriel Magalhães', position: 'Zagueiro', created_at: '' },
+    { id: 'fd6', game_id: '', name: 'Ibañez', position: 'Zagueiro', created_at: '' },
+    { id: 'fd7', game_id: '', name: 'Léo Pereira', position: 'Zagueiro', created_at: '' },
+    { id: 'fd8', game_id: '', name: 'Marquinhos', position: 'Zagueiro', created_at: '' },
+    // Meio-campistas
+    { id: 'fm1', game_id: '', name: 'Bruno Guimarães', position: 'Meia', created_at: '' },
+    { id: 'fm2', game_id: '', name: 'Casemiro', position: 'Meia', created_at: '' },
+    { id: 'fm3', game_id: '', name: 'Danilo Santos', position: 'Meia', created_at: '' },
+    { id: 'fm4', game_id: '', name: 'Éderson', position: 'Meia', created_at: '' },
+    { id: 'fm5', game_id: '', name: 'Fabinho', position: 'Meia', created_at: '' },
+    { id: 'fm6', game_id: '', name: 'Lucas Paquetá', position: 'Meia', created_at: '' },
+    // Atacantes
+    { id: 'fa1', game_id: '', name: 'Endrick', position: 'Atacante', created_at: '' },
+    { id: 'fa2', game_id: '', name: 'Gabriel Martinelli', position: 'Atacante', created_at: '' },
+    { id: 'fa3', game_id: '', name: 'Igor Thiago', position: 'Atacante', created_at: '' },
+    { id: 'fa4', game_id: '', name: 'Luiz Henrique', position: 'Atacante', created_at: '' },
+    { id: 'fa5', game_id: '', name: 'Matheus Cunha', position: 'Atacante', created_at: '' },
+    { id: 'fa6', game_id: '', name: 'Neymar Jr.', position: 'Atacante', created_at: '' },
+    { id: 'fa7', game_id: '', name: 'Raphinha', position: 'Atacante', created_at: '' },
+    { id: 'fa8', game_id: '', name: 'Rayan', position: 'Atacante', created_at: '' },
+    { id: 'fa9', game_id: '', name: 'Vini Jr.', position: 'Atacante', created_at: '' },
+    // Outro
+    { id: 'f_other', game_id: '', name: 'Outro jogador', position: '', created_at: '' },
   ]
 
   const list = players.length > 0 ? players : fallback
@@ -484,9 +510,9 @@ function PalpiteStep({
                       if (val === '') {
                         onUpdateGoal(idx, 'minute', '' as any)
                       } else {
-                        const num = Number(val)
+                        const num = parseInt(val, 10)
                         if (!isNaN(num)) {
-                          onUpdateGoal(idx, 'minute', Math.min(90, Math.max(1, num)))
+                          onUpdateGoal(idx, 'minute', num)
                         }
                       }
                     }}

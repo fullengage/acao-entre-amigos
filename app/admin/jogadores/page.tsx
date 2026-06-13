@@ -49,11 +49,37 @@ function JogadoresContent() {
   async function addDefaultPlayers() {
     if (!selectedGame) return
     const defaults = [
-      { name: 'Vinícius Júnior', position: 'Atacante' },
-      { name: 'Rodrygo', position: 'Atacante' },
-      { name: 'Endrick', position: 'Atacante' },
-      { name: 'Raphinha', position: 'Atacante' },
+      // Goleiros
+      { name: 'Alisson', position: 'Goleiro' },
+      { name: 'Ederson', position: 'Goleiro' },
+      { name: 'Weverton', position: 'Goleiro' },
+      // Defensores
+      { name: 'Alex Sandro', position: 'Zagueiro' },
+      { name: 'Bremer', position: 'Zagueiro' },
+      { name: 'Danilo', position: 'Zagueiro' },
+      { name: 'Douglas Santos', position: 'Zagueiro' },
+      { name: 'Gabriel Magalhães', position: 'Zagueiro' },
+      { name: 'Ibañez', position: 'Zagueiro' },
+      { name: 'Léo Pereira', position: 'Zagueiro' },
+      { name: 'Marquinhos', position: 'Zagueiro' },
+      // Meio-campistas
       { name: 'Bruno Guimarães', position: 'Meia' },
+      { name: 'Casemiro', position: 'Meia' },
+      { name: 'Danilo Santos', position: 'Meia' },
+      { name: 'Éderson', position: 'Meia' },
+      { name: 'Fabinho', position: 'Meia' },
+      { name: 'Lucas Paquetá', position: 'Meia' },
+      // Atacantes
+      { name: 'Endrick', position: 'Atacante' },
+      { name: 'Gabriel Martinelli', position: 'Atacante' },
+      { name: 'Igor Thiago', position: 'Atacante' },
+      { name: 'Luiz Henrique', position: 'Atacante' },
+      { name: 'Matheus Cunha', position: 'Atacante' },
+      { name: 'Neymar Jr.', position: 'Atacante' },
+      { name: 'Raphinha', position: 'Atacante' },
+      { name: 'Rayan', position: 'Atacante' },
+      { name: 'Vini Jr.', position: 'Atacante' },
+      // Outro
       { name: 'Outro jogador', position: '' },
     ]
     await supabase.from('players').insert(defaults.map((d) => ({ ...d, game_id: selectedGame })))

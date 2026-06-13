@@ -271,9 +271,9 @@ export default function AdminResultadoPage({ params }: Props) {
                         if (val === '') {
                           updateGoalDetail(idx, 'minute', '' as any)
                         } else {
-                          const num = Number(val)
+                          const num = parseInt(val, 10)
                           if (!isNaN(num)) {
-                            updateGoalDetail(idx, 'minute', Math.min(90, Math.max(1, num)))
+                            updateGoalDetail(idx, 'minute', num)
                           }
                         }
                       }}
