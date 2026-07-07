@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
-import { generatePixPayload, PIX_CONFIG, PIX_DISPLAY } from '@/lib/pix'
+import { STATIC_PIX_CODE, PIX_CONFIG, PIX_DISPLAY } from '@/lib/pix'
 import { halfLabel, goalsLabel, formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import QRCode from 'qrcode'
@@ -17,7 +17,7 @@ function PagamentoContent() {
   const half = params.get('half') as 'first' | 'second' || 'first'
   const minute = Number(params.get('minute')) || 1
 
-  const [pixCode, setPixCode] = useState('')
+  const [pixCode, setPixCode] = useState(STATIC_PIX_CODE)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
   const [guess, setGuess] = useState<any | null>(null)
@@ -26,13 +26,7 @@ function PagamentoContent() {
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP || '5511955501090'
 
   useEffect(() => {
-    const payload = generatePixPayload({
-      ...PIX_CONFIG,
-      txid: guessId.substring(0, 25) || 'BOLAO2026',
-    })
-    setPixCode(payload)
-
-    QRCode.toDataURL(payload, {
+    QRCode.toDataURL(STATIC_PIX_CODE, {
       width: 240,
       margin: 2,
       color: { dark: '#002776', light: '#FFFFFF' },
@@ -175,12 +169,10 @@ function PagamentoContent() {
               >
                 💳 Pagamento via PIX
               </div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#FFDF00' }}>
-                {formatCurrency(PIX_DISPLAY.amount)}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#8899bb', marginTop: 4 }}>
-                Valor da participação no Bolão
-              </div>
+              <p style={{ color: '#FFDF00', fontSize: '0.9rem', fontWeight: 600, background: 'rgba(255,223,0,0.1)', padding: '12px', borderRadius: 8, border: '1px solid rgba(255,223,0,0.3)' }}>
+                ⚠️ O valor não vai preenchido automaticamente.<br/>
+                Por favor, <strong>digite manualmente o valor de {formatCurrency(PIX_DISPLAY.amount)}</strong> no seu aplicativo do banco!
+              </p>
             </div>
 
             {/* QR Code */}

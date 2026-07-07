@@ -123,3 +123,14 @@ export interface FinancialSummary {
   prize_amount: number
   community_amount: number
 }
+
+export interface HotdogOrder {
+  id: string
+  ticket_number: number
+  buyer_name: string
+  seller_name: string
+  quantity: number
+  total_amount: number
+  status: string
+  created_at: string
+}

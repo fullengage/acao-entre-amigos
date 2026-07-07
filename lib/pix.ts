@@ -65,17 +65,21 @@ export function generatePixPayload(params: PixPayload): string {
 }
 
 export const PIX_CONFIG = {
-  key: '25598513854',
-  name: 'Richard Wagner O Portela',
-  city: 'Novo Horizonte',
+  key: '6263aaf2-adb5-41f1-a784-d648b8b1c7a5',
+  name: 'Richard Wagner de Oliveira',
+  city: 'Sao Paulo',
   amount: 10.0,
-  description: 'Bolao Selecao 2026',
+  description: 'Acoes Entre Amigos',
 } as const
 
 export const PIX_DISPLAY = {
-  key: '255.985.138-54',
+  key: '6263aaf2-adb5-41f1-a784-d648b8b1c7a5',
   fullName: 'Richard Wagner de Oliveira Portela',
   description: 'Fundador da Comunidade Voz de Deus',
   city: 'Novo Horizonte - SP',
   amount: 10.0,
 } as const
+
+// The exact string exported from Nubank to guarantee it works.
+// This string has a 0.00 value, so the payer must type the value manually.
+export const STATIC_PIX_CODE = '00020126580014BR.GOV.BCB.PIX01366263aaf2-adb5-41f1-a784-d648b8b1c7a55204000053039865802BR5925Richard Wagner de Oliveir6009SAO PAULO62140510ogxbWHeiZY6304D638'

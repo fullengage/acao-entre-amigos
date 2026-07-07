@@ -8,8 +8,7 @@ export function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(16px)',
+        background: '#000000',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}
     >
@@ -34,48 +33,16 @@ export function Navbar() {
           />
           <div style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 12 }}>
             <div style={{ fontWeight: 800, color: 'white', fontSize: '0.95rem', lineHeight: 1 }}>
-              Bolão da Copa
+              Ações Entre Amigos
             </div>
-            <div style={{ fontSize: '0.7rem', color: '#00C94F', fontWeight: 600, marginTop: 2 }}>2026</div>
+            <div style={{ fontSize: '0.7rem', color: '#00C94F', fontWeight: 600, marginTop: 2 }}>Voz de Deus</div>
           </div>
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href="/regulamento">
-            <button
-              style={{
-                padding: '7px 16px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                color: '#aabbdd',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-              }}
-            >
-              📜 Regulamento
-            </button>
-          </Link>
-          <Link href="/ranking">
-            <button
-              style={{
-                padding: '7px 16px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                color: '#aabbdd',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-              }}
-            >
-              🏆 Ranking
-            </button>
-          </Link>
-          <Link href="/jogos">
+          <Link href="/hotdog">
             <button className="btn-primary" style={{ padding: '7px 16px', fontSize: '0.85rem' }}>
-              ⚽ Fazer Palpite
+              🌭 Comprar Hotdog
             </button>
           </Link>
         </div>
